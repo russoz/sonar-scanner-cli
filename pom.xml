@@ -164,6 +164,61 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>rpm-maven-plugin</artifactId>
+        <version>2.1.4</version>
+        <executions>
+          <execution>
+            <id>rpm</id>
+            <phase>rpm</phase>
+            <goals>
+              <goal>rpm</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <url>http://www.sonarqube.org/</url>
+          <vendor>SonarSource S.A.</vendor>
+          <group>Development/Tools</group>
+          <copyright>LGPLv3+</copyright>
+          <prefix>/usr/local</prefix>
+          <mappings>
+            <mapping>
+              <directory>/usr/local/etc</directory>
+              <configuration>true</configuration>
+              <filemode>644</filemode>
+              <directoryIncluded>false</directoryIncluded>
+              <sources>
+                <source>
+                  <location>src/main/assembly/conf/sonar-runner.properties</location>
+                </source>
+              </sources>
+            </mapping>
+            <mapping>
+              <directory>/usr/local/bin</directory>
+              <filemode>755</filemode>
+              <directoryIncluded>false</directoryIncluded>
+              <sources>
+                <source>
+                  <location>src/main/assembly/bin/sonar-runner</location>
+                  <filter>true</filter>
+                </source>
+              </sources>
+            </mapping>
+            <mapping>
+              <directory>/usr/local/lib</directory>
+              <filemode>755</filemode>
+              <directoryIncluded>false</directoryIncluded>
+              <sources>
+                <source>
+                  <location>target/sonar-scanner-${project.version}.jar</location>
+                </source>
+              </sources>
+            </mapping>
+          </mappings>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 </project>
