@@ -21,6 +21,18 @@ switch ($env:RUN)
 		mvn package "--batch-mode" "-B" "-e" "-V"
 		CheckLastExitCode
 	}
+	"its_dev"
+	{
+		cd it
+		mvn -DsonarRunner.version="2.5-SNAPSHOT" -Dsonar.runtimeVersion=DEV -Dmaven.test.redirectTestOutputToFile=false -B -e -V package
+                CheckLastExitCode
+	}
+	"its_lts"
+	{
+		cd it
+		mvn -DsonarRunner.version="2.5-SNAPSHOT" -Dsonar.runtimeVersion=LTS -Dmaven.test.redirectTestOutputToFile=false -B -e -V package
+		CheckLastExitCode
+	}
 
 	default
 	{
