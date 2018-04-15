@@ -1,7 +1,7 @@
 /*
  * SonarSource :: IT :: SonarQube Scanner
- * Copyright (C) 2009-2016 SonarSource SA
- * mailto:contact AT sonarsource DOT com
+ * Copyright (C) 2009-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.sonar.runner.it;
+package com.sonarsource.scanner.it;
 
 import com.sonar.orchestrator.Orchestrator;
 import org.junit.ClassRule;
@@ -26,12 +26,12 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({JavaTest.class, MultimoduleTest.class})
+@SuiteClasses({JavaTest.class, MultimoduleTest.class, DistributionTest.class})
 public class SonarScannerTestSuite {
 
   @ClassRule
   public static final Orchestrator ORCHESTRATOR = Orchestrator.builderEnv()
-    .setOrchestratorProperty("javaVersion", "LATEST_RELEASE")
+    .setOrchestratorProperty("javaVersion", "4.11")
     .addPlugin("java")
     .setOrchestratorProperty("javascriptVersion", "LATEST_RELEASE")
     .addPlugin("javascript")

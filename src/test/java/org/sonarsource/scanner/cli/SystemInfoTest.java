@@ -1,7 +1,7 @@
 /*
  * SonarQube Scanner
- * Copyright (C) 2011-2016 SonarSource SA
- * mailto:contact AT sonarsource DOT com
+ * Copyright (C) 2011-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sonarsource.scanner.cli.SystemInfo.System2;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;

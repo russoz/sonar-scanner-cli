@@ -1,7 +1,7 @@
 /*
  * SonarQube Scanner
- * Copyright (C) 2011-2016 SonarSource SA
- * mailto:contact AT sonarsource DOT com
+ * Copyright (C) 2011-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,7 @@
 package org.sonar.api.utils;
 
 public class MessageException extends RuntimeException {
-  public MessageException(String msg) {
-    super(msg);
+  public MessageException(String msg, Throwable cause) {
+    super(msg, cause);
   }
 }

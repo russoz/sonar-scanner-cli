@@ -1,7 +1,7 @@
 /*
  * SonarQube Scanner
- * Copyright (C) 2011-2016 SonarSource SA
- * mailto:contact AT sonarsource DOT com
+ * Copyright (C) 2011-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,8 @@ import java.io.UnsupportedEncodingException;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import org.junit.Test;
-import static org.fest.assertions.Assertions.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class StatsTest {
   private PrintStream stdOut = mock(PrintStream.class);

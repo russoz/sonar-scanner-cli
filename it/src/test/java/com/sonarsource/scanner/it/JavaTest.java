@@ -1,7 +1,7 @@
 /*
  * SonarSource :: IT :: SonarQube Scanner
- * Copyright (C) 2009-2016 SonarSource SA
- * mailto:contact AT sonarsource DOT com
+ * Copyright (C) 2009-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package com.sonar.runner.it;
+package com.sonarsource.scanner.it;
 
 import com.sonar.orchestrator.build.BuildResult;
 import com.sonar.orchestrator.build.SonarScanner;
@@ -25,16 +25,19 @@ import com.sonar.orchestrator.locator.ResourceLocation;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import org.apache.commons.lang.SystemUtils;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.fest.assertions.Condition;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sonar.wsclient.issue.Issue;
 import org.sonar.wsclient.issue.IssueQuery;
-import org.sonar.wsclient.services.Resource;
-import org.sonar.wsclient.services.ResourceQuery;
+import org.sonarqube.ws.WsComponents.Component;
+import org.sonarqube.ws.WsMeasures.Measure;
 
+import static java.lang.Integer.parseInt;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class JavaTest extends ScannerTestCase {
@@ -57,28 +60,49 @@ public class JavaTest extends ScannerTestCase {
     orchestrator.getServer().associateProjectToQualityProfile("java:sample", "java", "sonar-way");
 
     SonarScanner build = newScanner(new File("projects/java-sample"))
-      .setProperty("sonar.verbose", "true")
-      .addArguments("-e");
+      .setProperty("sonar.verbose", "true");
     // SONARPLUGINS-3061
     // Add a trailing slash
     build.setProperty("sonar.host.url", orchestrator.getServer().getUrl() + "/");
     orchestrator.executeBuild(build);
 
-    Resource project = orchestrator.getServer().getWsClient().find(new ResourceQuery("java:sample").setMetrics("files", "ncloc", "classes", "lcom4", "violations"));
-    // SONARPLUGINS-2399
+    Component project = getComponent("java:sample");
     assertThat(project.getName()).isEqualTo("Java Sample, with comma");
     assertThat(project.getDescription()).isEqualTo("This is a Java sample");
-    assertThat(project.getVersion()).isEqualTo("1.2.3");
-    assertThat(project.getMeasureIntValue("files")).isEqualTo(2);
-    assertThat(project.getMeasureIntValue("classes")).isEqualTo(2);
-    assertThat(project.getMeasureIntValue("ncloc")).isGreaterThan(10);
-    assertThat(project.getMeasureIntValue("violations")).isGreaterThan(0);
 
-    Resource file = orchestrator.getServer().getWsClient()
-      .find(new ResourceQuery("java:sample:src/basic/Hello.java").setMetrics("files", "ncloc", "classes", "violations"));
+    Map<String, Measure> projectMeasures = getMeasures("java:sample", "files", "ncloc", "classes", "violations");
+    // SONARPLUGINS-2399
+    assertThat(parseInt(projectMeasures.get("files").getValue())).isEqualTo(2);
+    assertThat(parseInt(projectMeasures.get("classes").getValue())).isEqualTo(2);
+    assertThat(parseInt(projectMeasures.get("ncloc").getValue())).isGreaterThan(10);
+    assertThat(parseInt(projectMeasures.get("violations").getValue())).isGreaterThan(0);
+
+    Component file = getComponent("java:sample:src/basic/Hello.java");
     assertThat(file.getName()).isEqualTo("Hello.java");
-    assertThat(file.getMeasureIntValue("ncloc")).isEqualTo(7);
-    assertThat(file.getMeasureIntValue("violations")).isGreaterThan(0);
+
+    Map<String, Measure> fileMeasures = getMeasures("java:sample:src/basic/Hello.java", "files", "ncloc", "classes", "violations");
+    assertThat(parseInt(fileMeasures.get("ncloc").getValue())).isEqualTo(7);
+    assertThat(parseInt(fileMeasures.get("violations").getValue())).isGreaterThan(0);
+  }
+
+  /**
+   * Only tests, no sources
+   */
+  @Test
+  public void scan_java_tests() {
+    orchestrator.getServer().restoreProfile(ResourceLocation.create("/sonar-way-profile.xml"));
+    orchestrator.getServer().provisionProject("java:sampletest", "Java Sample");
+    orchestrator.getServer().associateProjectToQualityProfile("java:sampletest", "java", "sonar-way");
+
+    SonarScanner build = newScanner(new File("projects/java-sample"))
+      .setProperty("sonar.projectKey", "java:sampletest")
+      .setProperty("sonar.tests", "src")
+      .setProperty("sonar.sources", "");
+    orchestrator.executeBuild(build);
+
+    Component file = getComponent("java:sampletest:src/basic/Hello.java");
+    assertThat(file.getName()).isEqualTo("Hello.java");
+    assertThat(file.getQualifier()).isEqualTo("UTS");
   }
 
   @Test
@@ -90,13 +114,14 @@ public class JavaTest extends ScannerTestCase {
     SonarScanner build = newScanner(new File("projects/java-bytecode"));
     orchestrator.executeBuild(build);
 
-    Resource project = orchestrator.getServer().getWsClient().find(new ResourceQuery("java:bytecode").setMetrics("lcom4", "violations"));
+    Component project = getComponent("java:bytecode");
     assertThat(project.getName()).isEqualTo("Java Bytecode Sample");
-    // the squid rules enabled in sonar-way-profile do not exist in SQ 3.0
-    assertThat(project.getMeasureIntValue("violations")).isGreaterThan(0);
 
-    Resource file = orchestrator.getServer().getWsClient().find(new ResourceQuery("java:bytecode:src/HasFindbugsViolation.java").setMetrics("lcom4", "violations"));
-    assertThat(file.getMeasureIntValue("violations")).isGreaterThan(0);
+    Map<String, Measure> projectMeasures = getMeasures("java:bytecode", "violations");
+    // the squid rules enabled in sonar-way-profile do not exist in SQ 3.0
+    assertThat(parseInt(projectMeasures.get("violations").getValue())).isGreaterThan(0);
+
+    assertThat(getMeasureAsInteger("java:bytecode:src/HasFindbugsViolation.java", "violations")).isGreaterThan(0);
 
     // findbugs is executed on bytecode
     List<Issue> issues = orchestrator.getServer().wsClient().issueClient().find(IssueQuery.create().componentRoots("java:bytecode").rules("squid:S1147")).list();
@@ -118,9 +143,9 @@ public class JavaTest extends ScannerTestCase {
     SonarScanner build = newScanner(new File("projects/basedir-with-source"));
     orchestrator.executeBuild(build);
 
-    Resource project = orchestrator.getServer().getWsClient().find(new ResourceQuery("java:basedir-with-source").setMetrics("files", "ncloc"));
-    assertThat(project.getMeasureIntValue("files")).isEqualTo(1);
-    assertThat(project.getMeasureIntValue("ncloc")).isGreaterThan(1);
+    Map<String, Measure> projectMeasures = getMeasures("java:basedir-with-source", "files", "ncloc");
+    assertThat(parseInt(projectMeasures.get("files").getValue())).isEqualTo(1);
+    assertThat(parseInt(projectMeasures.get("ncloc").getValue())).isGreaterThan(1);
   }
 
   /**
@@ -136,9 +161,9 @@ public class JavaTest extends ScannerTestCase {
       .setProjectKey("SAMPLE");
     orchestrator.executeBuild(build);
 
-    Resource project = orchestrator.getServer().getWsClient().find(new ResourceQuery("SAMPLE").setMetrics("files", "ncloc"));
-    assertThat(project.getMeasureIntValue("files")).isEqualTo(2);
-    assertThat(project.getMeasureIntValue("ncloc")).isGreaterThan(1);
+    Map<String, Measure> projectMeasures = getMeasures("SAMPLE", "files", "ncloc");
+    assertThat(parseInt(projectMeasures.get("files").getValue())).isEqualTo(2);
+    assertThat(parseInt(projectMeasures.get("ncloc").getValue())).isGreaterThan(1);
   }
 
   /**
@@ -254,39 +279,25 @@ public class JavaTest extends ScannerTestCase {
       .addArguments("-e");
     orchestrator.executeBuild(build);
 
-    Resource project = orchestrator.getServer().getWsClient().find(new ResourceQuery("java:sample").setMetrics("files", "ncloc", "classes", "lcom4", "violations"));
-    assertThat(project.getDescription()).isEqualTo("This is a Java sample");
-    assertThat(project.getVersion()).isEqualTo("1.2.3");
+    assertThat(getComponent("java:sample").getDescription()).isEqualTo("This is a Java sample");
+    Map<String, Measure> projectMeasures = getMeasures("java:sample", "files", "ncloc", "classes", "violations");
+    assertThat(projectMeasures.values().stream().filter(measure -> measure.getValue() != null).collect(Collectors.toList())).hasSize(4);
   }
 
   @Test
-  public void use_old_script_and_old_env_variable() {
-    SonarScanner build = newScanner(new File("projects/java-sample"))
-      .setUseOldSonarRunnerScript(true)
-      .setEnvironmentVariable("SONAR_RUNNER_OPTS", "-Xmx2m");
-    BuildResult executeBuild = orchestrator.executeBuildQuietly(build);
-    assertThat(executeBuild.getStatus()).isNotEqualTo(0);
-    String logs = executeBuild.getLogs();
-    if (SystemUtils.IS_OS_WINDOWS) {
-      assertThat(logs).contains("WARN: sonar-runner.bat script is deprecated. Please use sonar-scanner.bat instead.");
-      assertThat(logs).contains("WARN: SONAR_RUNNER_OPTS is deprecated. Please use SONAR_SCANNER_OPTS instead.");
-    } else {
-      assertThat(logs).contains("WARN: sonar-runner script is deprecated. Please use sonar-scanner instead.");
-      assertThat(logs).contains("WARN: $SONAR_RUNNER_OPTS is deprecated. Please use $SONAR_SCANNER_OPTS instead.");
-    }
-    assertThat(logs).contains("java.lang.OutOfMemoryError");
-  }
-
-  @Test
-  public void use_new_script_and_new_env_variable() {
+  public void verify_env_variable() {
     SonarScanner build = newScanner(new File("projects/java-sample"))
       .setEnvironmentVariable("SONAR_SCANNER_OPTS", "-Xmx2m");
     BuildResult executeBuild = orchestrator.executeBuildQuietly(build);
     assertThat(executeBuild.getStatus()).isNotEqualTo(0);
     String logs = executeBuild.getLogs();
-    assertThat(logs).doesNotContain("sonar-runner");
-    assertThat(logs).doesNotContain("SONAR_RUNNER_OPTS");
-    assertThat(logs).contains("java.lang.OutOfMemoryError");
+    assertThat(logs).satisfies(new Condition<String>("Contain error message about OOM") {
+      @Override
+      public boolean matches(String value) {
+        return value.contains("java.lang.OutOfMemoryError") 
+          || value.contains("GC overhead limit exceeded") || value.contains("Java heap space");
+      }
+    });
   }
 
 }

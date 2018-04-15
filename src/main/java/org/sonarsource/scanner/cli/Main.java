@@ -1,7 +1,7 @@
 /*
  * SonarQube Scanner
- * Copyright (C) 2011-2016 SonarSource SA
- * mailto:contact AT sonarsource DOT com
+ * Copyright (C) 2011-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,7 @@
  */
 package org.sonarsource.scanner.cli;
 
-import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 import org.sonarsource.scanner.api.EmbeddedScanner;
 import org.sonarsource.scanner.api.ScanProperties;
@@ -64,6 +64,7 @@ public class Main {
   void execute() {
     Stats stats = new Stats(logger).start();
 
+    int status = Exit.ERROR;
     try {
       Properties p = conf.properties();
       checkSkip(p);
@@ -71,15 +72,15 @@ public class Main {
       init(p);
       runner.start();
       logger.info("SonarQube server " + runner.serverVersion());
-      runAnalysis(stats, p);
-    } catch (Exception e) {
+      execute(stats, p);
+      status = Exit.SUCCESS;
+    } catch (Throwable e) {
       displayExecutionResult(stats, "FAILURE");
       showError("Error during SonarQube Scanner execution", e, cli.isDebugEnabled());
-      exit.exit(Exit.ERROR);
+    } finally {
+      exit.exit(status);
     }
 
-    runner.stop();
-    exit.exit(Exit.SUCCESS);
   }
 
   private void checkSkip(Properties properties) {
@@ -89,7 +90,7 @@ public class Main {
     }
   }
 
-  private void init(Properties p) throws IOException {
+  private void init(Properties p) {
     SystemInfo.print(logger);
     if (cli.isDisplayVersionOnly()) {
       exit.exit(Exit.SUCCESS);
@@ -98,7 +99,7 @@ public class Main {
     runner = runnerFactory.create(p);
   }
 
-  private void configureLogging(Properties props) throws IOException {
+  private void configureLogging(Properties props) {
     if ("true".equals(props.getProperty("sonar.verbose"))
       || "DEBUG".equalsIgnoreCase(props.getProperty("sonar.log.level"))
       || "TRACE".equalsIgnoreCase(props.getProperty("sonar.log.level"))) {
@@ -106,8 +107,8 @@ public class Main {
     }
   }
 
-  private void runAnalysis(Stats stats, Properties p) {
-    runner.runAnalysis(p);
+  private void execute(Stats stats, Properties p) {
+    runner.execute((Map) p);
     displayExecutionResult(stats, "SUCCESS");
   }
 
@@ -142,7 +143,7 @@ public class Main {
 
   private static boolean showStackTrace(Throwable e, boolean debug) {
     // class not available at compile time (loaded by isolated classloader)
-    return debug || !"org.sonar.api.utils.MessageException".equals(e.getClass().getName());
+    return debug && !"org.sonar.api.utils.MessageException".equals(e.getClass().getName());
   }
 
   private void suggestDebugMode() {

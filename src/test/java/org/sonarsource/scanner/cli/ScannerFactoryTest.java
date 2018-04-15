@@ -1,7 +1,7 @@
 /*
  * SonarQube Scanner
- * Copyright (C) 2011-2016 SonarSource SA
- * mailto:contact AT sonarsource DOT com
+ * Copyright (C) 2011-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,7 @@ import org.sonarsource.scanner.api.EmbeddedScanner;
 import org.sonarsource.scanner.api.LogOutput;
 import org.sonarsource.scanner.api.LogOutput.Level;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -49,6 +49,8 @@ public class ScannerFactoryTest {
 
     assertThat(runner).isInstanceOf(EmbeddedScanner.class);
     assertThat(runner.globalProperties().get("foo")).isEqualTo("bar");
+    assertThat(runner.app()).isEqualTo("ScannerCli");
+    assertThat(runner.appVersion()).isNotNull();
   }
 
   @Test

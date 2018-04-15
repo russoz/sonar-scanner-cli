@@ -1,7 +1,7 @@
 /*
  * SonarQube Scanner
- * Copyright (C) 2011-2016 SonarSource SA
- * mailto:contact AT sonarsource DOT com
+ * Copyright (C) 2011-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.annotation.Nullable;
+
 import org.sonarsource.scanner.api.Utils;
 
 class Conf {
@@ -53,24 +55,31 @@ class Conf {
     this.env = env;
   }
 
-  Properties properties() throws IOException {
+  Properties properties() {
     Properties result = new Properties();
     result.putAll(loadGlobalProperties());
     result.putAll(loadProjectProperties());
     result.putAll(System.getProperties());
     result.putAll(loadEnvironmentProperties());
     result.putAll(cli.properties());
+    result = resolve(result);
+    
     // root project base directory must be present and be absolute
     result.setProperty(PROPERTY_PROJECT_BASEDIR, getRootProjectBaseDir(result).toString());
     result.remove(PROJECT_HOME);
     return result;
   }
 
+  private Properties resolve(Properties props) {
+    PropertyResolver resolver = new PropertyResolver(props, env);
+    return resolver.resolve();
+  }
+
   private Properties loadEnvironmentProperties() {
     return Utils.loadEnvironmentProperties(env);
   }
 
-  private Properties loadGlobalProperties() throws IOException {
+  private Properties loadGlobalProperties() {
     Path settingsFile = locatePropertiesFile(cli.properties(), SCANNER_HOME, "conf/sonar-scanner.properties",
       SCANNER_SETTINGS);
     if (settingsFile != null && Files.isRegularFile(settingsFile)) {
@@ -81,7 +90,7 @@ class Conf {
     return new Properties();
   }
 
-  private Properties loadProjectProperties() throws IOException {
+  private Properties loadProjectProperties() {
     Properties rootProps = new Properties();
     Properties knownProps = new Properties();
 
@@ -206,7 +215,7 @@ class Conf {
     return locatePropertiesFile(settingsFile, props, settingsKey);
   }
 
-  private static Path locatePropertiesFile(Path defaultPath, Properties props, String settingsKey) {
+  private static Path locatePropertiesFile(@Nullable Path defaultPath, Properties props, String settingsKey) {
     Path settingsFile = defaultPath;
     if (settingsFile == null || !Files.exists(settingsFile)) {
       String settingsPath = props.getProperty(settingsKey, "");

@@ -4,8 +4,7 @@
 @REM   JAVA_HOME - location of a JDK home dir
 @REM
 @REM Optional ENV vars:
-@REM   SONAR_SCANNER_HOME - location of runner's installed home dir
-@REM   SONAR_SCANNER_OPTS - parameters passed to the Java VM when running Sonar
+@REM   SONAR_SCANNER_OPTS - parameters passed to the Java VM when running the SonarQube Scanner
 
 @echo off
 
@@ -14,8 +13,18 @@ set ERROR_CODE=0
 @REM set local scope for the variables with windows NT shell
 @setlocal
 
+set "scriptdir=%~dp0"
+if #%scriptdir:~-1%# == #\# set scriptdir=%scriptdir:~0,-1%
+set "SONAR_SCANNER_HOME=%scriptdir%\.."
+
 @REM ==== START VALIDATION ====
 @REM *** JAVA EXEC VALIDATION ***
+
+set use_embedded_jre=${use_embedded_jre}
+if "%use_embedded_jre%" == "true" (
+  set "JAVA_HOME=%SONAR_SCANNER_HOME%\jre"
+)
+
 if not "%JAVA_HOME%" == "" goto foundJavaHome
 
 for %%i in (java.exe) do set JAVA_EXEC=%%~$PATH:i
@@ -47,32 +56,17 @@ goto error
 :foundJavaExeFromJavaHome
 set JAVA_EXEC="%JAVA_HOME%\bin\java.exe"
 
-@REM *** SONAR SCANNER HOME VALIDATION ***
 :OkJava
-if NOT "%SONAR_SCANNER_HOME%"=="" goto cleanSQScannerHome
-set SONAR_SCANNER_HOME=%~dp0..
 goto run
-
-:cleanSQScannerHome
-@REM If the property has a trailing backslash, remove it
-if "%SONAR_SCANNER_HOME:~-1%"=="\" set SONAR_SCANNER_HOME=%SONAR_SCANNER_HOME:~0,-1%
-
-@REM Check if the provided SONAR_SCANNER_HOME is a valid install dir
-IF EXIST "%SONAR_SCANNER_HOME%\lib\sonar-scanner-cli-${project.version}.jar" goto run
-
-echo.
-echo ERROR: SONAR_SCANNER_HOME exists but does not point to a valid install
-echo        directory: %SONAR_SCANNER_HOME%
-echo.
-goto error
-
 
 
 @REM ==== START RUN ====
 :run
-echo %SONAR_SCANNER_HOME%
 
 set PROJECT_HOME=%CD%
+
+@REM remove trailing backslash, see https://groups.google.com/d/msg/sonarqube/wi7u-CyV_tc/3u9UKRmABQAJ
+IF %PROJECT_HOME:~-1% == \ SET PROJECT_HOME=%PROJECT_HOME:~0,-1%
 
 %JAVA_EXEC% -Djava.awt.headless=true %SONAR_SCANNER_DEBUG_OPTS% %SONAR_SCANNER_OPTS% -cp "%SONAR_SCANNER_HOME%\lib\sonar-scanner-cli-${project.version}.jar" "-Dscanner.home=%SONAR_SCANNER_HOME%" "-Dproject.home=%PROJECT_HOME%" org.sonarsource.scanner.cli.Main %*
 if ERRORLEVEL 1 goto error

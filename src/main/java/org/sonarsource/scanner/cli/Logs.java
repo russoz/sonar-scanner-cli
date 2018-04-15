@@ -1,7 +1,7 @@
 /*
  * SonarQube Scanner
- * Copyright (C) 2011-2016 SonarSource SA
- * mailto:contact AT sonarsource DOT com
+ * Copyright (C) 2011-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -65,9 +65,7 @@ public class Logs {
 
   public void error(String message, Throwable t) {
     print(stdErr, "ERROR: " + message);
-    if (t != null) {
-      t.printStackTrace(stdErr);
-    }
+    t.printStackTrace(stdErr);
   }
 
   private void print(PrintStream stream, String msg) {
